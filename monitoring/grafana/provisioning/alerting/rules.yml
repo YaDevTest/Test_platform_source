@@ -1,0 +1,316 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: testplatform
+    folder: TestPlatform
+    interval: 1m
+    rules:
+
+      - uid: alert-cpu
+        title: "CPU > 75%"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[1m])) * 100)
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [75]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 30s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "CPU перегрузка"
+        isPaused: false
+
+      - uid: alert-ram
+        title: "RAM > 65%"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [60]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "RAM перегрузка"
+        isPaused: false
+
+      - uid: alert-oom
+        title: "OOM Kill"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 60, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: increase(node_vmstat_oom_kill[1m])
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "OOM Kill!"
+        isPaused: false
+
+      - uid: alert-5xx
+        title: "HTTP 5xx ошибки"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: P8E80F9AEF21F6940
+            model:
+              expr: 'sum(count_over_time({container="/testplatform_nginx"} |~ "\" 5[0-9][0-9] " [5m]))'
+              queryType: range
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Обнаружены 5xx ошибки в nginx"
+        isPaused: false
+
+        
+      - uid: alert-service-down
+        title: "Сервис недоступен"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: up
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              type: reduce
+              expression: A
+              reducer: last
+              refId: B
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: {type: lt, params: [1]}
+                  operator: {type: and}
+                  query: {params: [B]}
+                  reducer: {type: last}
+              refId: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Сервис {{ $labels.job }} недоступен"
+        isPaused: false
+
+      - uid: alert-disk
+        title: "Disk > 90%"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: (1 - node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [90]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 2m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Диск заполнен > 90%"
+        isPaused: false
+
+      - uid: alert-mysql-connections
+        title: "MySQL Connections > 80%"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 60, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [80]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "MySQL connections > 80% от max_connections"
+        isPaused: false
+
+      - uid: alert-redis-miss-rate
+        title: "Redis Miss Rate > 80%"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: rate(redis_keyspace_misses_total[1m]) / (rate(redis_keyspace_hits_total[1m]) + rate(redis_keyspace_misses_total[1m]))
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [0.8]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Redis высокий процент промахов (>80%)"
+        isPaused: false
+        
+      - uid: alert-nginx-connections-exhausted
+        title: "Nginx worker_connections exhausted"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: P8E80F9AEF21F6940
+            model:
+              expr: 'count_over_time({container="/testplatform_nginx"} |= "worker_connections are not enough" [1m])'
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [10]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Nginx не хватает worker_connections"
+        isPaused: false
+        
+      - uid: alert-phpfpm-maxchildren
+        title: "PHP-FPM Max Children Reached"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              expr: increase(phpfpm_max_children_reached{job="php-fpm"}[1m])
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 30s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "PHP-FPM упёрся в лимит воркеров (pm.max_children)"
+        isPaused: false
+
+      - uid: alert-fastapi-traceback
+        title: "FastAPI Python Exception"
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: {from: 300, to: 0}
+            datasourceUid: P8E80F9AEF21F6940
+            model:
+              expr: 'count_over_time({container="/testplatform_fastapi"} |= "Traceback" [1m]) or vector(0)'
+              queryType: range
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              type: classic_conditions
+              refId: C
+              conditions:
+                - evaluator: {type: gt, params: [0]}
+                  operator: {type: and}
+                  query: {params: [A]}
+                  reducer: {type: last}
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        annotations:
+          summary: "Python exception в FastAPI (Traceback в логах)"
+        isPaused: false

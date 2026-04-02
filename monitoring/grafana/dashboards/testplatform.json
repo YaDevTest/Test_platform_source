@@ -1,0 +1,119 @@
+{
+  "title": "TestPlatform Overview",
+  "uid": "testplatform-main",
+  "timezone": "browser",
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "FastAPI — запросов в секунду",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "rate(http_requests_total{job=\"fastapi\"}[1m])",
+        "legendFormat": "{{method}} {{handler}}"
+      }]
+    },
+    {
+      "id": 2,
+      "title": "FastAPI — время ответа (p95)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"fastapi\"}[5m]))",
+        "legendFormat": "p95 latency"
+      }]
+    },
+    {
+      "id": 3,
+      "title": "MySQL — запросов в секунду",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "rate(mysql_global_status_queries[1m])",
+        "legendFormat": "queries/s"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "MySQL — подключения",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8},
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "mysql_global_status_threads_connected",
+        "legendFormat": "connections"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "Redis — использование памяти",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 8},
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "redis_memory_used_bytes",
+        "legendFormat": "memory used"
+      }]
+    },
+    {
+      "id": 6,
+      "title": "Nginx — активные соединения",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 16},
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "nginx_connections_active",
+        "legendFormat": "active"
+      }]
+    },
+    {
+      "id": 7,
+      "title": "Redis — hit rate",
+      "type": "gauge",
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 16},
+      "options": {
+        "minValue": 0,
+        "maxValue": 100,
+        "reduceOptions": {
+          "calcs": ["lastNotNull"]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "unit": "percent",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "orange", "value": 50},
+              {"color": "green", "value": 80}
+            ]
+          }
+        }
+      },
+      "targets": [{
+        "datasource": "Prometheus",
+        "expr": "rate(redis_keyspace_hits_total[5m]) / (rate(redis_keyspace_hits_total[5m]) + rate(redis_keyspace_misses_total[5m])) * 100",
+        "legendFormat": "hit rate %"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Логи контейнеров",
+      "type": "logs",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 24},
+      "targets": [{
+        "datasource": "Loki",
+        "expr": "{container=~\"testplatform.*\"}",
+        "legendFormat": ""
+      }]
+    }
+  ],
+  "schemaVersion": 38
+}

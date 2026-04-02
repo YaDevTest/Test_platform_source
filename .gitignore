@@ -1,0 +1,43 @@
+# ======================
+# TestPlatform .gitignore
+# ======================
+
+# Secrets
+.env
+.env.local
+.env.production
+.envrc
+
+# Docker runtime data
+mysql-data/
+redis-data/
+loki-data/
+grafana-data/
+prometheus-data/
+logs/
+backups/
+*.log
+
+# Python / FastAPI
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.pytest_cache/
+
+# IDE / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# OS / temporary
+Thumbs.db
+*.tar.gz
+*.bak
+*.bak.*
+
+# Backups and dumps
+*.sql
+dumps/

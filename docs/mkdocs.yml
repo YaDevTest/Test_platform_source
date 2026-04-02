@@ -1,0 +1,11 @@
+site_name: TestPlatform Docs
+theme:
+  name: material
+  language: ru
+nav:
+  - Главная: index.md
+  - Runbook:
+    - Падение контейнера: runbook/container-down.md
+    - OOM kill: runbook/oom-kill.md
+    - Переполнение диска: runbook/disk-full.md
+    - Рост latency: runbook/high-latency.md
